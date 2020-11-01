@@ -2,8 +2,8 @@
 
 
 let h
-const a = 1;
-const b = "hello world";
+let a = 1;
+let b = "hello world";
 const c = {
     a,b
 };

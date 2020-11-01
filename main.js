@@ -4,7 +4,7 @@ import {createElement, render, Component} from "./toy-react";
 class MyComponent extends Component {
     constructor() {
         super();
-        this.states = {
+        this.state = {
             a: 1,
             b: 2
         }
@@ -14,10 +14,12 @@ class MyComponent extends Component {
         return <div>
             <h1>my component</h1>
             <button onClick={() => {
-                this.states.a++;
-                this.rerender();
-            }}>hello kevin</button>
-            <span>{this.states.a.toString()}</span>
+                this.setState({a: this.state.a + 1}
+                )
+            }}>hello kevin
+            </button>
+            <span>{this.state.a.toString()}</span>
+            <span>{this.state.b.toString()}</span>
             <h1>1234</h1>
             {this.children}
         </div>

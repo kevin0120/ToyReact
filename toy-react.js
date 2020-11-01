@@ -8,10 +8,10 @@ class ElementWrapper {
 
     setAttribute(name, value) {
         //属性中事件和静态属性的 处理是不一样的
-        if (name.match(/^on([\s\S]+)/)){
+        if (name.match(/^on([\s\S]+)/)) {
             //以on开头的事件属性添加
-            this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/,c =>c.toLowerCase()),value)
-        }else {
+            this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value)
+        } else {
 
             this.root.setAttribute(name, value)
         }
@@ -26,6 +26,8 @@ class ElementWrapper {
         // this.root.appendChild(component.root)
     }
 
+
+    //这个就是重新给document赋值的函数
     [RENDER_TO_DOM](range) {
         range.deleteContents();
         range.insertNode(this.root)
@@ -37,6 +39,7 @@ class TextWrapper {
         this.root = document.createTextNode(content);
     }
 
+    //这个就是重新给document赋值的函数
     [RENDER_TO_DOM](range) {
         range.deleteContents();
         range.insertNode(this.root);
@@ -46,6 +49,7 @@ class TextWrapper {
 export class Component {
     constructor() {
         this.props = Object.create(null);
+        this.state = null;
         this.children = [];
         this._root = null;
     }
@@ -58,8 +62,11 @@ export class Component {
         this.children.push(component)
     }
 
+    //这个就是重新给document赋值的函数一直其对递归调用
+    //this.render()函数调用重新生成document
+    //自定义component有几层就会调用几层
     [RENDER_TO_DOM](range) {
-        this._range =range
+        this._range = range
         this.render()[RENDER_TO_DOM](range)
     }
 
@@ -71,14 +78,45 @@ export class Component {
     // }
 
 
-    rerender(){
-        this._range.deleteContents();
-        this[RENDER_TO_DOM](this._range)
+    rerender() {
+        let oldRange = this._range;
+
+        let range = document.createRange();
+        range.setStart(oldRange.startContainer, this._range.startOffset)
+        range.setEnd(oldRange.startContainer, this._range.startOffset)
+        this[RENDER_TO_DOM](range);
+
+        oldRange.setStart(range.endContainer, range.endOffset);
+        oldRange.deleteContents();
+        //会有问题 应该用上面的方法
+        // this._range.deleteContents();
+        // this[RENDER_TO_DOM](this._range)
+    }
+
+
+    setState(newState) {
+        if (this.state === null || typeof this.state !== "object") {
+            this.state = newState;
+            this.rerender();
+            return
+        }
+        let merge = (oldState, newState) => {
+            for (let p in newState) {
+                if (oldState[p] === null || typeof oldState[p] !== "object") {
+                    oldState[p] = newState[p]
+                } else {
+                    merge(oldState[p], newState[p])
+                }
+            }
+        }
+        merge(this.state, newState)
+        this.rerender();
     }
 
 }
 
-//render() 优化了document.body.appendChild()
+//render() 优化了document.body.appendChild
+//只在main函数调用render函数时运行一次！！！！
 export function render(component, parentElement) {
     let range = document.createRange()
     range.setStart(parentElement, 0);
@@ -105,6 +143,11 @@ export function createElement(type, attributes, ...children) {
             if (typeof child === "string") {
                 child = new TextWrapper(child);
                 // i = document.createTextNode(i);
+            }
+
+            //没有这行的话<div></div>
+            if (child === null) {
+                continue
             }
             if (typeof child === "object" && child instanceof Array) {
                 insertChildren(child)
