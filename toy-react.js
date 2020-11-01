@@ -7,7 +7,15 @@ class ElementWrapper {
     }
 
     setAttribute(name, value) {
-        this.root.setAttribute(name, value)
+        //属性中事件和静态属性的 处理是不一样的
+        if (name.match(/^on([\s\S]+)/)){
+            //以on开头的事件属性添加
+            this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/,c =>c.toLowerCase()),value)
+        }else {
+
+            this.root.setAttribute(name, value)
+        }
+
     }
 
     appendChild(component) {
@@ -51,6 +59,7 @@ export class Component {
     }
 
     [RENDER_TO_DOM](range) {
+        this._range =range
         this.render()[RENDER_TO_DOM](range)
     }
 
@@ -60,6 +69,13 @@ export class Component {
     //     }
     //     return this._root
     // }
+
+
+    rerender(){
+        this._range.deleteContents();
+        this[RENDER_TO_DOM](this._range)
+    }
+
 }
 
 //render() 优化了document.body.appendChild()
