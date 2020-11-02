@@ -12,8 +12,11 @@ class ElementWrapper {
             //以on开头的事件属性添加
             this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c => c.toLowerCase()), value)
         } else {
-
-            this.root.setAttribute(name, value)
+            if (name === "className") {
+                this.root.setAttribute("class", value)
+            } else {
+                this.root.setAttribute(name, value)
+            }
         }
 
     }
@@ -29,6 +32,7 @@ class ElementWrapper {
 
     //这个就是重新给document赋值的函数
     [RENDER_TO_DOM](range) {
+        //如果仅仅是为了第一次加载那么这里可以不用先删在插，这样做是为了在更新时起作用！！！！
         range.deleteContents();
         range.insertNode(this.root)
     }
@@ -79,16 +83,22 @@ export class Component {
 
 
     rerender() {
+        //将旧的range保存下来
         let oldRange = this._range;
-
+        //新建一个range,在旧的rang之前暂时为null
         let range = document.createRange();
         range.setStart(oldRange.startContainer, this._range.startOffset)
         range.setEnd(oldRange.startContainer, this._range.startOffset)
+
+        //新rang有了更新的内容，旧rang变大了在前面包含了新rang！！！！！
+        // Range.insertNode()在 Range 的起点处插入一个节点!!!!!!!
         this[RENDER_TO_DOM](range);
 
+        //将旧rang缩小到正确的旧内容范围（以前包含新旧内容）
         oldRange.setStart(range.endContainer, range.endOffset);
+        // 将旧内容删除
         oldRange.deleteContents();
-        //会有问题 应该用上面的方法
+        //会有问题 应该用上面的方法,保证不丢数据
         // this._range.deleteContents();
         // this[RENDER_TO_DOM](this._range)
     }
