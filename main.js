@@ -74,7 +74,8 @@ render(
     document.getElementById('root')
 );
 
-
+// let game = <Game/>;
+// console.log(game.vdom)
 // import {createElement, render, Component} from "./toy-react";
 //
 //
