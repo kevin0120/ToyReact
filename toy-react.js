@@ -5,7 +5,6 @@ export class Component {
         this.props = Object.create(null);
         this.state = null;
         this.children = [];
-        this._root = null
     }
 
     setAttribute(name, value) {
@@ -64,16 +63,28 @@ export class Component {
             }
             newNode._range = oldNode._range;
 
-            let newChildren =newNode.vchildren;
-            let oldChildren =oldNode.vchildren;
+            let newChildren = newNode.vchildren;
+            let oldChildren = oldNode.vchildren;
 
-            for(let i=0; i< newChildren.length;i++){
+            if (!newChildren || !newChildren.length) {
+                return;
+            }
+
+            let tailRange = oldChildren[oldChildren.length - 1]._range;
+
+
+            for (let i = 0; i < newChildren.length; i++) {
                 let newChild = newChildren[i];
                 let oldChild = oldChildren[i];
-                if(i<oldChildren.length){
-                    update(oldChild,newChild)
-                }else{
+                if (i < oldChildren.length) {
+                    update(oldChild, newChild)
+                } else {
                     //TODO
+                    let range = document.createRange();
+                    range.setStart(tailRange.endContainer, tailRange.endOffset);
+                    range.setEnd(tailRange.endContainer, tailRange.endOffset);
+                    newChild[RENDER_TO_DOM](range);
+                    tailRange = range;
                 }
             }
         }
@@ -175,8 +186,6 @@ class ElementWrapper extends Component {
     //这个就是重新给document赋值的函数
     [RENDER_TO_DOM](range) {
         //如果仅仅是为了第一次加载那么这里可以不用先删在插，这样做是为了在更新时起作用！！！！
-        range.deleteContents();
-
         this._range = range
 
         let root = document.createElement(this.type)
@@ -210,7 +219,9 @@ class ElementWrapper extends Component {
             // this.root.appendChild(component.root)
         }
 
-        range.insertNode(root)
+        replaceContent(range, root);
+        // range.deleteContents();
+        // range.insertNode(root)
     }
 }
 
@@ -219,7 +230,6 @@ class TextWrapper extends Component {
         super(content);
         this.content = content;
         this.type = "#text";
-        this.root = document.createTextNode(content);
     }
 
     get vdom() {
@@ -232,14 +242,23 @@ class TextWrapper extends Component {
 
     //这个就是重新给document赋值的函数
     [RENDER_TO_DOM](range) {
-        range.deleteContents();
-
         this._range = range
-
-
-        range.insertNode(this.root);
+        let root = document.createTextNode(this.content);
+        replaceContent(range,root)
+        //
+        // range.deleteContents();
+        // range.insertNode(this.root);
     }
 }
+
+function replaceContent(range, node) {
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.deleteContents();
+    range.setStartBefore(node);
+    range.setEndAfter(node)
+}
+
 
 //render() 优化了document.body.appendChild
 //只在main函数调用render函数时运行一次！！！！
